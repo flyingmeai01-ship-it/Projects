@@ -75,4 +75,15 @@ select {
 .comfort-mode .elder-action, .comfort-mode .elder-input { min-height: 66px; font-size: 1.15rem }
 .comfort-mode .card { border-width: 3px }
 .companion-note { border-left: 6px solid #0f766e; border-radius: 12px; background: #f0fdfa; color: #134e4a; padding: 1rem; font-size: 1rem }
+.care-appear { animation: care-appear .45s ease-out both }
+.care-float { display: inline-block; animation: care-float 3.5s ease-in-out infinite }
+.care-pulse { animation: care-pulse 2.4s ease-in-out infinite }
+.care-celebrate { display: inline-block; animation: care-celebrate .8s ease-out both }
+.card { animation: care-appear .45s ease-out both }
+.text-4xl[aria-hidden="true"], .text-5xl[aria-hidden="true"], .text-6xl[aria-hidden="true"] { display: inline-block; animation: care-float 3.5s ease-in-out infinite }
+.btn-primary { animation: care-pulse 2.4s ease-in-out infinite }
+@keyframes care-appear { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes care-float { 0%, 100% { transform: translateY(0) rotate(-2deg) } 50% { transform: translateY(-6px) rotate(2deg) } }
+@keyframes care-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(15, 118, 110, .12) } 50% { box-shadow: 0 0 0 8px rgba(15, 118, 110, 0) } }
+@keyframes care-celebrate { 0% { opacity: 0; transform: scale(.7) rotate(-8deg) } 70% { transform: scale(1.1) rotate(4deg) } 100% { opacity: 1; transform: scale(1) rotate(0) } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important } }
