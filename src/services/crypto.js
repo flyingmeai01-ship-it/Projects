@@ -1,5 +1,7 @@
 let wasmEncrypt = null;
 let wasmDecrypt = null;
+let wasmAdapt = null;
+let wasmRecommend = null;
 
 export async function loadCrypto() {
   try {
@@ -9,14 +11,27 @@ export async function loadCrypto() {
     if (typeof instance.cwrap !== 'function') throw new Error('WASM module does not expose cwrap');
     wasmEncrypt = instance.cwrap('encrypt_json', 'string', ['string', 'string']);
     wasmDecrypt = instance.cwrap('decrypt_json', 'string', ['string', 'string']);
+    try {
+      wasmAdapt = instance.cwrap('adapt_game_state', 'string', ['number', 'number', 'number', 'number', 'number', 'number', 'number']);
+      wasmRecommend = instance.cwrap('recommend_activity', 'string', ['string', 'string', 'string']);
+    } catch (analyticsError) {
+      // Older cached vault modules still provide cryptography; analytics uses JS until rebuilt.
+      wasmAdapt = null;
+      wasmRecommend = null;
+      console.warn('WASM adaptation engine not loaded; using local JS fallback.', analyticsError);
+    }
     return true;
   } catch (e) {
     wasmEncrypt = null;
     wasmDecrypt = null;
+    wasmAdapt = null;
+    wasmRecommend = null;
     console.warn('WASM vault not loaded; using WebCrypto fallback for MVP.', e);
     return false;
   }
 }
+export function wasmAdaptGameState(previousLevel, attempts, recentAverage, correct, rounds, feeling, hintsUsed) { if (!wasmAdapt) return null; return wasmAdapt(previousLevel, attempts, recentAverage, correct, rounds, feeling, hintsUsed) }
+export function wasmRecommendActivity(gameStats, interests, levels) { if (!wasmRecommend) return null; return wasmRecommend(gameStats, interests, levels) }
 async function deriveKey(secret) { const data = new TextEncoder().encode(secret); const digest = await crypto.subtle.digest('SHA-256', data); return crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']) }
 function hexToBytes(hex) { if (!/^(?:[0-9a-f]{2})+$/i.test(hex)) throw new Error('Invalid vault ciphertext'); const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16); return bytes }
 export async function encryptJson(obj, secret) { const raw = JSON.stringify(obj); if (wasmEncrypt) { const encrypted = wasmEncrypt(raw, secret); if (!encrypted) throw new Error('WASM vault encryption failed'); return encrypted } const iv = crypto.getRandomValues(new Uint8Array(12)); const key = await deriveKey(secret); const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(raw)); return JSON.stringify({ v: 1, iv: Array.from(iv), data: Array.from(new Uint8Array(cipher)) }) }

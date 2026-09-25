@@ -1,89 +1,351 @@
 @import "tailwindcss";
 
 :root {
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #0f172a;
-    background: #f8fafc
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #14231a;
+    background-color: #fbf8f2; /* Glare-free warm cream */
 }
 
 * {
-    box-sizing: border-box
+    box-sizing: border-box;
 }
 
 body {
     margin: 0;
     min-width: 320px;
-    font-size: 18px;
-    line-height: 1.5
+    font-size: 20px; /* Strict minimum 20px for elderly readability */
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    background-color: #fbf8f2;
+    color: #14231a;
 }
 
 button,
 input,
-select {
-    font: inherit
+select,
+textarea {
+    font: inherit;
 }
 
+/* Accessible Warm Cards */
 .card {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 20px;
-    box-shadow: 0 8px 30px rgba(15, 23, 42, .06)
+    background: #fffdf9;
+    border: 3px solid #dfd8c8;
+    border-radius: 22px;
+    box-shadow: 0 4px 16px rgba(20, 35, 26, 0.06);
 }
 
+.elder-card {
+    background: #fffdf9;
+    border: 3px solid #d6ccba;
+    border-radius: 24px;
+    box-shadow: 0 6px 20px rgba(20, 35, 26, 0.08);
+}
+
+/* North Eastern Cultural Motif Cards */
+.ner-tea-card {
+    background: linear-gradient(180deg, #f4f8f4 0%, #ebf4ec 100%);
+    border: 3px solid #1f6b48;
+    border-radius: 24px;
+    color: #0e3020;
+}
+
+.ner-bamboo-card {
+    background: linear-gradient(180deg, #fefbf4 0%, #fbf1de 100%);
+    border: 3px solid #b37418;
+    border-radius: 24px;
+    color: #3b2302;
+}
+
+.ner-mist-card {
+    background: linear-gradient(180deg, #f3f7f9 0%, #e5eef3 100%);
+    border: 3px solid #28556f;
+    border-radius: 24px;
+    color: #122c3b;
+}
+
+/* Cultural decorative top-border accent (inspired by traditional NER textile borders) */
+.ner-weave-accent {
+    border-top: 8px solid #b91c1c;
+    position: relative;
+}
+
+.ner-weave-accent::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: repeating-linear-gradient(90deg, #b91c1c 0px, #b91c1c 12px, #fbf8f2 12px, #fbf8f2 18px);
+}
+
+/* Chunky, Tactile Buttons with High Contrast & Wide Tap Targets */
 .btn {
-    border-radius: 12px;
-    padding: .7rem 1rem;
-    font-weight: 700;
-    transition: .15s;
-    min-height: 48px
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    padding: 0.85rem 1.6rem;
+    font-weight: 800;
+    font-size: 1.15rem;
+    min-height: 64px; /* Minimum wide tap target */
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
+    user-select: none;
+    touch-action: manipulation;
 }
 
+.btn:active {
+    transform: translateY(3px);
+}
+
+.btn:focus-visible {
+    outline: 4px solid #d97706;
+    outline-offset: 4px;
+}
+
+/* Primary Chunky - Tea Garden Deep Green */
 .btn-primary {
-    background: #0f766e;
-    color: #fff
+    background: #14532d;
+    color: #ffffff;
+    border-color: #0f3d21;
+    box-shadow: 0 4px 0 #0b2e19;
 }
 
 .btn-primary:hover {
-    background: #115e59
+    background: #166534;
 }
 
+.btn-primary:active {
+    box-shadow: 0 1px 0 #0b2e19;
+}
+
+/* Soft / Secondary Chunky - Warm Bamboo Neutral */
 .btn-soft {
-    background: #ecfeff;
-    color: #115e59
+    background: #f2e9d8;
+    color: #1a3324;
+    border-color: #d1be9e;
+    box-shadow: 0 4px 0 #baa685;
 }
 
+.btn-soft:hover {
+    background: #eae0cd;
+    border-color: #baa685;
+}
+
+.btn-soft:active {
+    box-shadow: 0 1px 0 #baa685;
+}
+
+/* Voice / Attention Chunky - Warm Amber Gold */
+.btn-voice {
+    background: #c2410c;
+    color: #ffffff;
+    border-color: #9a3412;
+    box-shadow: 0 4px 0 #7c2d12;
+}
+
+.btn-voice:hover {
+    background: #ea580c;
+}
+
+.btn-voice:active {
+    box-shadow: 0 1px 0 #7c2d12;
+}
+
+/* Danger Chunky */
 .btn-danger {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #f87171;
+    box-shadow: 0 4px 0 #ef4444;
+}
+
+.btn-danger:hover {
     background: #fee2e2;
-    color: #991b1b
 }
 
-.focus-ring:focus {
-    outline: 3px solid #99f6e4;
-    outline-offset: 2px
+/* Elderly Inputs */
+.elder-input {
+    min-height: 64px;
+    border: 3px solid #78857c;
+    border-radius: 16px;
+    padding: 0.85rem 1.25rem;
+    font-size: 1.15rem;
+    color: #14231a;
+    background: #ffffff;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
-.elder-card { border-width: 2px; box-shadow: 0 10px 32px rgba(15, 118, 110, .10) }
-.elder-action { min-height: 58px; font-size: 1.05rem; padding: .8rem 1.25rem }
-.elder-input { min-height: 58px; border: 2px solid #94a3b8; border-radius: 14px; padding: .75rem 1rem; font-size: 1rem }
-.voice-status { background: #ecfdf5; border-left: 5px solid #0f766e; border-radius: 10px; color: #134e4a; padding: .8rem 1rem; font-weight: 600 }
-.memory-note { border: 2px solid #ccfbf1; border-radius: 16px; background: #f0fdfa; padding: 1rem 1.1rem }
-.game-choice { min-height: 88px; border: 2px solid #cbd5e1; border-radius: 18px; padding: 1rem 1.2rem; font-size: 1.15rem; font-weight: 700; line-height: 1.35; transition: transform .15s, border-color .15s, background .15s }
-.game-choice:hover { border-color: #0f766e; transform: translateY(-2px) }
-.game-choice:focus-visible, .elder-action:focus-visible, .elder-input:focus-visible { outline: 4px solid #fbbf24; outline-offset: 3px }
-.comfort-mode { font-size: 20px }
-.comfort-mode .game-choice { min-height: 104px; font-size: 1.3rem; padding: 1.25rem }
-.comfort-mode .elder-action, .comfort-mode .elder-input { min-height: 66px; font-size: 1.15rem }
-.comfort-mode .card { border-width: 3px }
-.companion-note { border-left: 6px solid #0f766e; border-radius: 12px; background: #f0fdfa; color: #134e4a; padding: 1rem; font-size: 1rem }
-.care-appear { animation: care-appear .45s ease-out both }
-.care-float { display: inline-block; animation: care-float 3.5s ease-in-out infinite }
-.care-pulse { animation: care-pulse 2.4s ease-in-out infinite }
-.care-celebrate { display: inline-block; animation: care-celebrate .8s ease-out both }
-.card { animation: care-appear .45s ease-out both }
-.text-4xl[aria-hidden="true"], .text-5xl[aria-hidden="true"], .text-6xl[aria-hidden="true"] { display: inline-block; animation: care-float 3.5s ease-in-out infinite }
-.btn-primary { animation: care-pulse 2.4s ease-in-out infinite }
-@keyframes care-appear { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
-@keyframes care-float { 0%, 100% { transform: translateY(0) rotate(-2deg) } 50% { transform: translateY(-6px) rotate(2deg) } }
-@keyframes care-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(15, 118, 110, .12) } 50% { box-shadow: 0 0 0 8px rgba(15, 118, 110, 0) } }
-@keyframes care-celebrate { 0% { opacity: 0; transform: scale(.7) rotate(-8deg) } 70% { transform: scale(1.1) rotate(4deg) } 100% { opacity: 1; transform: scale(1) rotate(0) } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important } }
+.elder-input:focus {
+    border-color: #14532d;
+    outline: 4px solid #d97706;
+    outline-offset: 2px;
+}
+
+/* Status & Feedback Banners */
+.voice-status {
+    background: #ecfdf5;
+    border: 3px solid #059669;
+    border-left-width: 8px;
+    border-radius: 16px;
+    color: #064e3b;
+    padding: 1rem 1.25rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.companion-note {
+    border: 3px solid #0d9488;
+    border-left-width: 8px;
+    border-radius: 16px;
+    background: #f0fdfa;
+    color: #134e4a;
+    padding: 1.1rem;
+    font-size: 1.08rem;
+}
+
+.memory-note {
+    border: 3px solid #cbd5e1;
+    border-radius: 18px;
+    background: #f8fafc;
+    padding: 1.2rem;
+    font-size: 1.1rem;
+}
+
+/* Game Choices for Dementia Interaction (Large, clear touch targets) */
+.game-choice {
+    min-height: 84px;
+    border: 3px solid #94a3b8;
+    border-radius: 20px;
+    padding: 1.1rem 1.4rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.35;
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 4px 0 #64748b;
+    cursor: pointer;
+    transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease;
+    text-align: left;
+}
+
+.game-choice:hover {
+    border-color: #14532d;
+}
+
+.game-choice:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #64748b;
+}
+
+.game-choice:focus-visible {
+    outline: 4px solid #d97706;
+    outline-offset: 3px;
+}
+
+/* Memory Cards */
+.memory-card {
+    min-height: 150px;
+    border: 4px solid #14532d;
+    border-radius: 22px;
+    padding: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.memory-card:active {
+    transform: scale(0.97);
+}
+
+.memory-card-closed {
+    background: #14532d;
+    color: #ffffff;
+    box-shadow: 0 5px 0 #0b2e19;
+}
+
+.memory-card-open {
+    background: #fffbeb;
+    color: #14532d;
+    border-color: #d97706;
+    box-shadow: 0 5px 0 #b45309;
+}
+
+.memory-card-tag {
+    margin-top: 0.4rem;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #78350f;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 0.2rem 0.6rem;
+    text-transform: uppercase;
+}
+
+.memory-story {
+    border: 3px solid #d97706;
+    border-left-width: 8px;
+    border-radius: 18px;
+    background: #fffbeb;
+    color: #451a03;
+    padding: 1.2rem;
+    font-size: 1.15rem;
+}
+
+/* Region Strip */
+.game-region-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    color: #14532d;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.game-region-strip span:first-child {
+    border-radius: 999px;
+    background: #ecfdf5;
+    border: 2px solid #6ee7b7;
+    padding: 0.2rem 0.7rem;
+}
+
+/* Caregiver Badge & Sync Status */
+.sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.sync-badge-online {
+    background: #dcfce7;
+    color: #15803d;
+    border: 2px solid #86efac;
+}
+
+.sync-badge-offline {
+    background: #fef3c7;
+    color: #92400e;
+    border: 2px solid #fcd34d;
+}
+
+/* Disable continuous distracting animations for dementia patients */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}

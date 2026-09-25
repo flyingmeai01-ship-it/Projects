@@ -12,6 +12,6 @@ mkdir -p "$project_root/public/wasm"
 em++ "$project_root/cpp/vault_core.cpp" -O3 \
   -I"$project_root/mbedtls/include" "$mbedcrypto_lib" \
   -sMODULARIZE=1 -sEXPORT_ES6=1 -sENVIRONMENT=web -sALLOW_MEMORY_GROWTH=1 \
-  -sEXPORTED_FUNCTIONS='["_encrypt_json","_decrypt_json"]' \
+  -sEXPORTED_FUNCTIONS='["_encrypt_json","_decrypt_json","_adapt_game_state","_recommend_activity"]' \
   -sEXPORTED_RUNTIME_METHODS='["cwrap"]' \
   -o "$project_root/public/wasm/vault_core.js"
