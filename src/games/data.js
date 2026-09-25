@@ -1,4 +1,8 @@
 export const GAME_DATA={
+  'familiar-faces':{title:'Familiar Faces & Places',icon:'🖼️',desc:'Recognise photos of loved ones and familiar places from home.',rounds:4},
+ 'stories-from-home':{title:'Stories from home',icon:'💬',desc:'Choose gentle prompts about familiar people, places and memories. No right answers.',rounds:6},
+ 'garden-moments':{title:'Garden & market moments',icon:'🌱',desc:'Share a calm moment about plants, food, weather and daily life. No right answers.',rounds:6},
+ 'memory-pairs':{title:'Northeast Memory Pairs',icon:'🃏',desc:'Match familiar cultural, farming and community cards across 10 gentle levels.',rounds:10},
  'family-match':{title:'People I know',icon:'👨‍👩‍👧‍👦',desc:'Talk about familiar people and relationships.',rounds:4},
  'culture-memory':{title:'Our celebrations',icon:'🌼',desc:'Recall local festivals and traditions.',rounds:4},
  'sequence-story':{title:'My daily routine',icon:'☀️',desc:'Choose the next step in a familiar day.',rounds:4},
@@ -20,3 +24,6 @@ export const LIFE_INTERESTS=[
 export const PEOPLE=['Mother','Father','Grandmother','Grandfather','Brother','Sister'];
 export const CULTURE=[['Assam','Bihu'],['Manipur','Lai Haraoba'],['Meghalaya','Wangala'],['Nagaland','Hornbill Festival'],['Mizoram','Chapchar Kut'],['Tripura','Garia Puja'],['Arunachal Pradesh','Losar'],['Sikkim','Pang Lhabsol']];
 export const PLACES=['Guwahati','Imphal','Shillong','Kohima','Aizawl','Agartala','Itanagar','Gangtok'];
+export const REGION_VISUALS={
+ Assam:'🌾 🍵 🛶 🪈', Manipur:'🛶 🦌 🌺 🎵', Meghalaya:'🌉 🌧️ 🍍 ⛰️', Nagaland:'🧣 🥁 🌶️ 🌿', Mizoram:'🎋 🌾 🧺 ⛰️', Tripura:'🍍 🧺 🌾 🪘', 'Arunachal Pradesh':'🏔️ 🌊 🧶 🎋', Sikkim:'🏔️ 🌿 🥟 🌼'
+};

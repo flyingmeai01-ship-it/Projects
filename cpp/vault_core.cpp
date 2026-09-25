@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <sstream>
+#include <algorithm>
 #include <emscripten/emscripten.h>
 
 EM_JS(int, fill_random_bytes, (unsigned char *output, int length), {
@@ -69,6 +71,34 @@ static bool json_hex_field(const char *json, const char *name, std::vector<unsig
   return hex_decode(source.substr(value_start, value_end - value_start), output);
 }
 
+// The adaptation engine works only with aggregated play signals.  It does not
+// receive names, voice notes, or any medical information.
+static std::vector<std::string> split(const std::string &value, char delimiter)
+{
+  std::vector<std::string> values;
+  std::stringstream stream(value);
+  std::string item;
+  while (std::getline(stream, item, delimiter)) values.push_back(item);
+  return values;
+}
+
+static int level_value(const std::string &level)
+{
+  if (level == "stretch") return 2;
+  if (level == "steady") return 1;
+  return 0;
+}
+
+static const char *level_name(int level)
+{
+  return level >= 2 ? "stretch" : level == 1 ? "steady" : "gentle";
+}
+
+static bool contains(const std::vector<std::string> &items, const std::string &value)
+{
+  return std::find(items.begin(), items.end(), value) != items.end();
+}
+
 extern "C"
 {
   EMSCRIPTEN_KEEPALIVE
@@ -131,6 +161,73 @@ extern "C"
       return out.c_str();
     }
     out.assign(reinterpret_cast<const char *>(plaintext.data()), plaintext.size());
+    return out.c_str();
+  }
+
+  // feeling: 0 = hard, 1 = okay, 2 = enjoyed.  The returned level controls
+  // only presentation difficulty (number of choices), never a health score.
+  EMSCRIPTEN_KEEPALIVE
+  const char *adapt_game_state(int previous_level, int previous_attempts,
+                               double recent_average, int correct, int rounds,
+                               int feeling, int hints_used)
+  {
+    static std::string out;
+    const int attempts = previous_attempts + 1;
+    const double accuracy = rounds > 0 ? static_cast<double>(correct) / rounds : 0.0;
+    const double average = previous_attempts > 0
+      ? ((recent_average * std::min(previous_attempts, 5)) + accuracy) / (std::min(previous_attempts, 5) + 1)
+      : accuracy;
+    int level = std::max(0, std::min(2, previous_level));
+    if (feeling == 0 || hints_used >= 2 || (attempts >= 3 && average < 0.5)) level = 0;
+    else if (attempts >= 3 && feeling == 2 && average >= 0.8) level = 2;
+    else if (attempts >= 2 && average >= 0.6) level = 1;
+    out = std::string("{\"level\":\"") + level_name(level) + "\",\"accuracy\":" + std::to_string(accuracy) + "}";
+    return out.c_str();
+  }
+
+  // game_stats format: gameId:plays:average;gameId:plays:average
+  // interests format: farm,food,craft,music,family,work
+  // levels format: gameId:gentle;gameId:steady
+  EMSCRIPTEN_KEEPALIVE
+  const char *recommend_activity(const char *game_stats, const char *interests, const char *levels)
+  {
+    static std::string out;
+    const std::vector<std::string> game_ids = {"family-match", "culture-memory", "sequence-story", "name-place", "everyday-skills", "sound-memory", "local-greetings", "festival-treasures", "market-memory"};
+    const std::vector<std::string> interest_values = split(interests ? interests : "", ',');
+    const std::string stats_source = game_stats ? game_stats : "";
+    const std::string levels_source = levels ? levels : "";
+    const std::vector<std::string> stats = split(stats_source, ';');
+    std::string chosen;
+    std::string reason = "variety";
+    const std::vector<std::pair<std::string, std::string>> interest_games = {{"family", "family-match"}, {"food", "market-memory"}, {"music", "sound-memory"}, {"craft", "everyday-skills"}, {"farm", "everyday-skills"}, {"work", "everyday-skills"}};
+    for (const auto &mapping : interest_games) {
+      if (!contains(interest_values, mapping.first)) continue;
+      if (stats_source.find(mapping.second + ":") == std::string::npos) { chosen = mapping.second; reason = "familiar-interest"; break; }
+      if (chosen.empty()) { chosen = mapping.second; reason = "familiar-interest"; }
+    }
+    if (chosen.empty()) {
+      for (const std::string &game : game_ids) {
+        if (stats_source.find(game + ":") == std::string::npos) { chosen = game; reason = "first-activity"; break; }
+      }
+    }
+    if (chosen.empty()) {
+      int lowest_plays = 2147483647;
+      double lowest_average = 1e9;
+      for (const std::string &entry : stats) {
+        const std::vector<std::string> fields = split(entry, ':');
+        if (fields.size() != 3) continue;
+        const int plays = std::atoi(fields[1].c_str());
+        const double average = std::atof(fields[2].c_str());
+        if (plays < lowest_plays || (plays == lowest_plays && average < lowest_average)) { chosen = fields[0]; lowest_plays = plays; lowest_average = average; }
+      }
+      if (chosen.empty()) { chosen = "family-match"; reason = "first-activity"; }
+    }
+    std::string level = "gentle";
+    for (const std::string &entry : split(levels_source, ';')) {
+      const std::vector<std::string> fields = split(entry, ':');
+      if (fields.size() == 2 && fields[0] == chosen) { level = level_name(level_value(fields[1])); break; }
+    }
+    out = "{\"game\":\"" + chosen + "\",\"level\":\"" + level + "\",\"reasonCode\":\"" + reason + "\"}";
     return out.c_str();
   }
 }

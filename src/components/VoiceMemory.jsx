@@ -4,50 +4,83 @@ import { hasAI4BharatEndpoint, transcribe as transcribeAI4Bharat } from '../serv
 import { hasGeminiKey, transcribe } from '../services/gemini';
 import { speakText } from '../services/speech';
 
-export default function VoiceMemory({ profile }) {
+export default function VoiceMemory({ profile, onBack }) {
   const [recording, setRecording] = useState(false);
   const [text, setText] = useState('');
   const [status, setStatus] = useState('');
   const [notes, setNotes] = useState([]);
+  const [savedSuccess, setSavedSuccess] = useState(false);
   const media = useRef(null);
   const recognition = useRef(null);
   const chunks = useRef([]);
 
-  useEffect(() => { getVoiceNotes(profile.id).then(setNotes) }, [profile.id]);
+  useEffect(() => {
+    getVoiceNotes(profile.id).then(setNotes);
+  }, [profile.id]);
 
   async function saveTranscript(transcript) {
     const clean = transcript.trim();
-    if (!clean) throw new Error('Please write or say a memory before saving.');
+    if (!clean) {
+      setStatus('Please say a memory before saving.');
+      return;
+    }
     await saveVoiceNote(profile.id, clean);
     setText(clean);
+    setSavedSuccess(true);
     setNotes(await getVoiceNotes(profile.id));
-    setStatus('Saved in this device’s encrypted CARE vault.');
+    setStatus('✓ Saved safely into your private CARE vault.');
+    setTimeout(() => setSavedSuccess(false), 3000);
   }
 
   function reviewTranscript(transcript) {
     const clean = transcript.trim();
-    if (!clean) throw new Error('I could not hear a memory. Please try again.');
+    if (!clean) {
+      setStatus('I could not hear speech clearly. Please try again gently.');
+      return;
+    }
     setText(clean);
-    setStatus('Please check the words below, then press Save memory.');
+    setStatus('Here are the words we heard. Press "Save Memory" when you are happy.');
   }
 
   async function startBrowserSpeech() {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!Recognition) throw new Error('Browser speech is not available. Configure AI4Bharat or Gemini in Settings, or type the memory below.');
+    if (!Recognition) {
+      setStatus('Browser speech recognition is not supported on this device. You can type below or configure AI in Settings.');
+      return;
+    }
     const r = new Recognition();
     recognition.current = r;
     r.lang = profile.language || 'en-IN';
     r.interimResults = false;
     r.maxAlternatives = 1;
-    r.onstart = () => { setRecording(true); setStatus(`Listening in ${r.lang}. Speak one short memory now.`) };
-    r.onspeechstart = () => setStatus('I hear speech. Finishing your memory…');
-    r.onspeechend = () => setStatus('I heard you. Turning your words into text…');
-    r.onresult = event => { try { reviewTranscript(event.results[0][0].transcript) } catch (error) { setStatus(error.message) } finally { setRecording(false) } };
-    r.onerror = event => { setRecording(false); const messages = { 'no-speech': 'No speech was detected. Move closer to the microphone and try one short sentence.', 'not-allowed': 'Microphone permission is blocked. Allow microphone access for CARE, then try again.', 'audio-capture': 'No working microphone was found. Check the device microphone or type the memory below.', network: 'Browser speech could not reach its recognition service. Configure AI4Bharat or Gemini in Settings.' }; setStatus(messages[event.error] || 'Voice recognition stopped. Please try again slowly, or type the memory below.') };
+    r.onstart = () => {
+      setRecording(true);
+      setStatus('Listening... Please speak your memory slowly.');
+    };
+    r.onspeechstart = () => setStatus('Listening to your words...');
+    r.onspeechend = () => setStatus('Processing your words...');
+    r.onresult = (event) => {
+      try {
+        reviewTranscript(event.results[0][0].transcript);
+      } catch (error) {
+        setStatus(error.message);
+      } finally {
+        setRecording(false);
+      }
+    };
+    r.onerror = (event) => {
+      setRecording(false);
+      const messages = {
+        'no-speech': 'No words were heard. Speak a little closer to the device.',
+        'not-allowed': 'Microphone access is blocked. Please allow microphone access.',
+        'audio-capture': 'No microphone found on this device.',
+        network: 'Speech service could not be reached.'
+      };
+      setStatus(messages[event.error] || 'Recording stopped. Please try again.');
+    };
     r.onend = () => setRecording(false);
     r.start();
     setRecording(true);
-    setStatus(`Listening in ${r.lang}. Speak one short memory now.`);
   }
 
   async function startCloudRecording(kind) {
@@ -56,36 +89,179 @@ export default function VoiceMemory({ profile }) {
       const recorder = new MediaRecorder(stream);
       media.current = recorder;
       chunks.current = [];
-      recorder.ondataavailable = event => event.data.size && chunks.current.push(event.data);
+      recorder.ondataavailable = (event) => event.data.size && chunks.current.push(event.data);
       recorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(chunks.current, { type: 'audio/webm' });
-        setStatus(kind === 'ai4bharat' ? 'Using AI4Bharat to understand your words…' : 'Turning your words into text…');
+        setStatus('Turning your spoken words into text...');
         try {
-          const result = kind === 'ai4bharat' ? await transcribeAI4Bharat(blob, profile.language) : await transcribe(blob);
+          const result =
+            kind === 'ai4bharat'
+              ? await transcribeAI4Bharat(blob, profile.language)
+              : await transcribe(blob);
           reviewTranscript(result.transcript || '');
         } catch (error) {
           if (kind === 'ai4bharat' && hasGeminiKey()) {
-            setStatus('AI4Bharat was unavailable. Trying Gemini…');
-            try { reviewTranscript((await transcribe(blob)).transcript || ''); return } catch (fallbackError) { setStatus(fallbackError.message); return }
+            setStatus('AI4Bharat service paused. Trying Gemini...');
+            try {
+              const res = await transcribe(blob);
+              reviewTranscript(res.transcript || '');
+              return;
+            } catch (fallbackError) {
+              setStatus(fallbackError.message);
+              return;
+            }
           }
           setStatus(error.message);
         }
       };
       recorder.start();
       setRecording(true);
-      setStatus(kind === 'ai4bharat' ? 'Listening with AI4Bharat. Speak one short memory.' : 'Listening. Speak one short memory.');
-    } catch { setStatus('Please allow microphone access, then try again.') }
+      setStatus('Listening to your voice. Speak at your own comfortable pace.');
+    } catch {
+      setStatus('Please allow microphone permission to record your voice.');
+    }
   }
 
   function start() {
+    setStatus('');
+    setSavedSuccess(false);
     if (hasAI4BharatEndpoint()) return startCloudRecording('ai4bharat');
     if (hasGeminiKey()) return startCloudRecording('gemini');
-    return startBrowserSpeech().catch(error => setStatus(error.message));
+    return startBrowserSpeech().catch((error) => setStatus(error.message));
   }
 
-  function stop() { media.current?.stop(); recognition.current?.stop(); setRecording(false) }
-  function speak(value = text) { speakText(value, profile.language, setStatus) }
+  function stop() {
+    media.current?.stop();
+    recognition.current?.stop();
+    setRecording(false);
+  }
 
-  return <section className="card p-6 elder-card"><div className="flex items-start justify-between gap-4"><div><h2 className="font-black text-2xl">Tell a memory</h2><p className="text-base text-slate-600 mt-2">Say one short story, name, or happy moment. There are no right or wrong answers.</p></div><div className="text-4xl" aria-hidden="true">🎙️</div></div><div className="mt-5">{!recording ? <button className="btn btn-primary elder-action" onClick={start}>🎤 Start speaking</button> : <button className="btn btn-danger elder-action" onClick={stop}>■ Stop recording</button>}<p className="text-sm text-slate-500 mt-3">{hasAI4BharatEndpoint() ? 'Audio is sent to your configured AI4Bharat gateway for regional-language transcription. Review it before saving.' : hasGeminiKey() ? 'Audio is sent to Gemini for transcription. Review it before saving.' : 'Uses browser speech when available. Configure AI4Bharat or Gemini in Settings for regional-language transcription.'}</p></div>{status && <p className="voice-status mt-4" role="status">{status}</p>}<label className="block mt-5 font-bold text-lg">Check or type the memory</label><div className="flex gap-3 mt-2"><input value={text} onChange={event => setText(event.target.value)} placeholder="For example: I enjoyed Bihu with my family." className="elder-input flex-1" /><button className="btn btn-soft elder-action" onClick={() => saveTranscript(text).catch(error => setStatus(error.message))}>Save memory</button></div>{notes.length > 0 && <div className="mt-6"><h3 className="font-black text-lg">My recent memories</h3><div className="space-y-3 mt-3">{notes.slice(0, 3).map(note => <div key={note.id} className="memory-note"><p>{note.text}</p><button className="text-teal-800 font-bold mt-2" onClick={() => speak(note.text)}>🔊 Read aloud</button></div>)}</div></div>}</section>;
+  function speak(value = text) {
+    speakText(value, profile.language, setStatus);
+  }
+
+  return (
+    <main className="card elder-card p-6 sm:p-10 max-w-2xl mx-auto bg-[#fffdf9] border-4 border-[#14532d] shadow-lg space-y-6">
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="btn btn-soft min-h-[58px] px-5 text-lg font-black flex items-center gap-2"
+        >
+          <span className="text-2xl" aria-hidden="true">⬅️</span>
+          <span>Back to Activities</span>
+        </button>
+      )}
+
+      {/* Header with clear literal icon & text */}
+      <header className="text-center space-y-2">
+        <div className="text-6xl sm:text-7xl mb-1" aria-hidden="true">🎙️</div>
+        <h1 className="text-3xl sm:text-4xl font-black text-[#14532d]">
+          Tell a Story or Memory
+        </h1>
+        <p className="text-xl sm:text-2xl text-[#334b3c] leading-relaxed max-w-lg mx-auto">
+          Speak softly into the phone. Share a happy memory, a familiar song, or a recipe from home.
+        </p>
+      </header>
+
+      {/* GIANT MICROPHONE BUTTON WITH LITERAL LABELS */}
+      <div className="flex flex-col items-center justify-center py-4">
+        {!recording ? (
+          <button
+            onClick={start}
+            className="btn btn-voice w-full sm:w-80 min-h-[90px] rounded-3xl text-2xl font-black flex flex-col items-center justify-center gap-1 shadow-lg"
+            aria-label="Tap to start recording speech"
+          >
+            <span className="text-4xl" aria-hidden="true">🎤</span>
+            <span>Tap to Speak</span>
+          </button>
+        ) : (
+          <button
+            onClick={stop}
+            className="btn btn-danger w-full sm:w-80 min-h-[90px] rounded-3xl text-2xl font-black flex flex-col items-center justify-center gap-1 shadow-lg border-4 border-[#dc2626]"
+            aria-label="Tap to stop recording speech"
+          >
+            <span className="text-4xl" aria-hidden="true">⏹️</span>
+            <span>Tap to Finish</span>
+          </button>
+        )}
+      </div>
+
+      {status && (
+        <div className="voice-status text-center text-lg sm:text-xl py-3" role="status">
+          {status}
+        </div>
+      )}
+
+      {/* Transcript Review Box (Large, High Contrast 22px text) */}
+      <div className="space-y-3 pt-2">
+        <label htmlFor="memory-input" className="block text-xl sm:text-2xl font-black text-[#14231a]">
+          Your Spoken Words:
+        </label>
+        <textarea
+          id="memory-input"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Your words will appear here. Or, you can type a memory here."
+          rows={3}
+          className="elder-input w-full text-xl sm:text-2xl p-4 min-h-[120px] bg-white border-3 border-[#78857c] rounded-2xl leading-relaxed"
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          {text.trim() && (
+            <button
+              onClick={() => speak(text)}
+              className="btn btn-soft min-h-[68px] text-xl flex items-center justify-center gap-2"
+            >
+              <span className="text-2xl" aria-hidden="true">🔊</span>
+              <span>Listen Aloud</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => saveTranscript(text)}
+            disabled={!text.trim()}
+            className={`btn btn-primary min-h-[68px] text-xl flex items-center justify-center gap-2 ${
+              !text.trim() ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <span className="text-2xl" aria-hidden="true">💾</span>
+            <span>Save This Memory</span>
+          </button>
+        </div>
+
+        {savedSuccess && (
+          <div className="p-4 rounded-xl bg-[#dcfce7] border-2 border-[#16a34a] text-[#14532d] font-bold text-center text-xl">
+            ✓ Memory saved into your private vault!
+          </div>
+        )}
+      </div>
+
+      {/* Recent Notes Preview */}
+      {notes.length > 0 && (
+        <div className="pt-6 border-t-2 border-[#d6ccba] space-y-4">
+          <h2 className="text-2xl font-black text-[#14231a]">
+            Recent Saved Memories
+          </h2>
+          <div className="space-y-3">
+            {notes.slice(0, 2).map((note) => (
+              <div
+                key={note.id}
+                className="p-4 rounded-xl bg-[#f7f3ea] border-2 border-[#ded1be] space-y-2"
+              >
+                <p className="text-xl font-bold text-[#14231a]">"{note.text}"</p>
+                <button
+                  onClick={() => speak(note.text)}
+                  className="btn btn-soft min-h-[50px] py-1 px-4 text-base font-bold flex items-center gap-2"
+                >
+                  <span aria-hidden="true">🔊</span>
+                  <span>Read aloud</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </main>
+  );
 }
